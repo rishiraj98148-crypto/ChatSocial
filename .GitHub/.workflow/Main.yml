@@ -1,0 +1,64 @@
+
+name: Build ChatSocial APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Check required files
+        run: |
+          test -f package.json
+          test -f capacitor.config.json
+          test -f index.html
+          test -f style.css
+          test -f script.js
+          test -f firebase-config.js
+          echo "All required files found."
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html style.css script.js firebase-config.js www/
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatSocial-V8.1-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
